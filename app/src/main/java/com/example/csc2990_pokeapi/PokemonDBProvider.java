@@ -1,6 +1,7 @@
 //add your own feature ec use a db instead of 
 //just making an array of pokemon objects
 //also makes clearing everything easier
+//and watchlist doesnt clear on app restart only when the clear button is pressed
 package com.example.csc2990_pokeapi;
 
 import android.content.ContentProvider;

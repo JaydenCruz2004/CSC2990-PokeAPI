@@ -32,6 +32,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 
+import android.media.MediaPlayer;
+
+
 public class MainActivity extends AppCompatActivity {
 
     TextView numberTV, nameTV, heightTV, baseTV, weightTV, sigText;
@@ -39,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
     Button searchButton, clearButton;
     EditText userInput;
     ListView pokeList;
+    MediaPlayer pokeSound;
+
 
     ArrayList<String> pokemons = new ArrayList<>();
     ArrayAdapter<String> adapter;
@@ -70,6 +75,9 @@ public class MainActivity extends AppCompatActivity {
                 pokemons);
         pokeList.setAdapter(adapter);
 
+        pokeSound = MediaPlayer.create(this, R.raw.pokeball);
+
+
         searchButton.setOnClickListener(v -> searchPokemon());
 
         clearButton.setOnClickListener(v -> clearDatabase());
@@ -96,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         fetchPokemon(input);
+        pokeSound.start();
     }
 
     private void fetchPokemon(String name) {
