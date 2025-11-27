@@ -1,4 +1,8 @@
+//add your own feature ec use a db instead of 
+//just making an array of pokemon objects
+//also makes clearing everything easier
 package com.example.csc2990_pokeapi;
+
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
@@ -18,7 +22,7 @@ public class PokemonDBProvider extends ContentProvider {
     public static final String COLUMN_FOUR = "Weight";
     public static final String COLUMN_FIVE = "XP";
 
-    // AUTHORITY **must** match manifest
+
     public static final String AUTHORITY = "com.example.csc2990_pokeapi.db";
     public static final Uri CONTENT_URI =
             Uri.parse("content://" + AUTHORITY + "/" + TABLE_NAME);
