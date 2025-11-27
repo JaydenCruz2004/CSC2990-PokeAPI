@@ -1,5 +1,4 @@
 package com.example.csc2990_pokeapi;
-
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
