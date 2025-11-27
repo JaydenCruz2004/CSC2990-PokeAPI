@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.Locale;
 
 import com.squareup.picasso.Picasso;
 
@@ -74,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         clearButton.setOnClickListener(v -> clearDatabase());
 
         pokeList.setOnItemClickListener((parent, view, position, id) -> {
-            String item = pokemons.get(position);  // "25: PIKACHU"
+            String item = pokemons.get(position);
             String[] parts = item.split(":");
             if (parts.length > 1) {
                 String pokeName = parts[1].trim().toLowerCase();
@@ -83,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         queryDB();
-        fetchPokemon("pikachu");
+        fetchPokemon("snorlax");
     }
 
     private void searchPokemon() {
@@ -130,7 +131,15 @@ public class MainActivity extends AppCompatActivity {
             int weight = obj.getInt("weight");
             int height = obj.getInt("height");
             int baseExp = obj.getInt("base_experience");
-            String sprite = obj.getJSONObject("sprites").getString("front_default");
+
+            //EC: High Quality sprite URL
+            //IMO the pixel one looks better
+            //String sprite = obj.getJSONObject("sprites").getString("front_default");
+            String paddedId = String.format(Locale.US, "%03d", id);
+
+            String sprite = "https://raw.githubusercontent.com/HybridShivam/Pokemon/master/assets/images/" + paddedId + ".png";
+
+
             String ability = obj.getJSONArray("abilities").getJSONObject(0)
                     .getJSONObject("ability").getString("name");
             String move = obj.getJSONArray("moves").getJSONObject(0)
@@ -158,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
                 move.toUpperCase() + " / " + ability.toUpperCase());
 
         Picasso.get().load(sprite).into(pokePic);
+
     }
 
 
@@ -241,4 +251,10 @@ public class MainActivity extends AppCompatActivity {
         clearFields();
         Toast.makeText(this, "Database cleared", Toast.LENGTH_SHORT).show();
     }
+
+    private String getHQSpritePath(int id) {
+        return "file:///android_asset/sprites/" + String.format("%03d", id) + ".png";
+    }
+
+
 }
