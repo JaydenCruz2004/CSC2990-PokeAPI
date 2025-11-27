@@ -1,3 +1,6 @@
+//resources used
+//https://medium.com/intuition/android-image-loading-libraries-glide-picasso-fresco-and-coil-f8a61008aeb9
+
 package com.example.csc2990_pokeapi;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -38,15 +41,17 @@ public class MainActivity extends AppCompatActivity {
 
     ArrayList<String> pokemons = new ArrayList<>();
     ArrayAdapter<String> adapter;
-    Cursor mCursor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().permitAll().build());
+        StrictMode.setThreadPolicy(
+                new StrictMode.ThreadPolicy.Builder().permitAll().build()
+        );
 
+        // Bind views
         numberTV = findViewById(R.id.number_tv);
         nameTV = findViewById(R.id.pokemon_name);
         heightTV = findViewById(R.id.height_tv);
@@ -59,15 +64,25 @@ public class MainActivity extends AppCompatActivity {
         pokeList = findViewById(R.id.poke_listview);
         sigText = findViewById(R.id.signature_text);
 
+        adapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_list_item_1,
+                pokemons);
+        pokeList.setAdapter(adapter);
+
         searchButton.setOnClickListener(v -> searchPokemon());
+
         clearButton.setOnClickListener(v -> clearDatabase());
 
         pokeList.setOnItemClickListener((parent, view, position, id) -> {
-            String item = pokemons.get(position);
+            String item = pokemons.get(position);  // "25: PIKACHU"
             String[] parts = item.split(":");
-            fetchPokemon(parts[1].trim().toLowerCase());
+            if (parts.length > 1) {
+                String pokeName = parts[1].trim().toLowerCase();
+                fetchPokemon(pokeName);
+            }
         });
 
+        queryDB();
         fetchPokemon("pikachu");
     }
 
@@ -79,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Enter a Pokémon name", Toast.LENGTH_SHORT).show();
             return;
         }
-
         fetchPokemon(input);
     }
 
@@ -89,17 +103,25 @@ public class MainActivity extends AppCompatActivity {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.connect();
 
-            if (conn.getResponseCode() != 200) {
-                Toast.makeText(this, "Pokémon not found", Toast.LENGTH_LONG).show();
+            int code = conn.getResponseCode();
+            if (code != 200) {
+                Toast.makeText(this, "Invalid Pokémon", Toast.LENGTH_LONG).show();
+                conn.disconnect();
                 return;
             }
 
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream())
+            );
             StringBuilder json = new StringBuilder();
             String line;
 
-            while ((line = br.readLine()) != null)
+            while ((line = br.readLine()) != null) {
                 json.append(line);
+            }
+
+            br.close();
+            conn.disconnect();
 
             JSONObject obj = new JSONObject(json.toString());
 
@@ -120,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             Log.e("err", "error loading pokemon", e);
-            Toast.makeText(this, "Could not load Pokémon", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Could not load Pokémon", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -132,28 +154,38 @@ public class MainActivity extends AppCompatActivity {
         weightTV.setText(String.valueOf(weight));
         heightTV.setText(String.valueOf(height));
         baseTV.setText(String.valueOf(baseExp));
-        sigText.setText("Signature: " + move.toUpperCase() + " / " + ability.toUpperCase());
+        sigText.setText("Signature: " +
+                move.toUpperCase() + " / " + ability.toUpperCase());
 
         Picasso.get().load(sprite).into(pokePic);
     }
 
+
     private void saveToDB(String name, int id, int height, int weight, int xp) {
 
-        Cursor c = getContentResolver().query(
-                PokemonDBProvider.CONTENT_URI,
-                null,
-                "Number = ?",
-                new String[]{String.valueOf(id)},
-                null
-        );
+        Cursor checkCursor = null;
+        try {
+            String[] projection = { PokemonDBProvider.COLUMN_TWO };
+            String selection = PokemonDBProvider.COLUMN_TWO + " = ?";
+            String[] args = { String.valueOf(id) };
 
-        if (c != null && c.getCount() > 0) {
-            c.close();
-            return; // do not insert duplicates
+            checkCursor = getContentResolver().query(
+                    PokemonDBProvider.CONTENT_URI,
+                    projection,
+                    selection,
+                    args,
+                    null
+            );
+
+            if (checkCursor != null && checkCursor.getCount() > 0) {
+                return;
+            }
+        } finally {
+            if (checkCursor != null) checkCursor.close();
         }
 
         ContentValues values = new ContentValues();
-        values.put(PokemonDBProvider.COLUMN_ONE, name);
+        values.put(PokemonDBProvider.COLUMN_ONE, name.toUpperCase());
         values.put(PokemonDBProvider.COLUMN_TWO, String.valueOf(id));
         values.put(PokemonDBProvider.COLUMN_THREE, String.valueOf(height));
         values.put(PokemonDBProvider.COLUMN_FOUR, String.valueOf(weight));
@@ -164,31 +196,49 @@ public class MainActivity extends AppCompatActivity {
 
     private void queryDB() {
         pokemons.clear();
-        mCursor = getContentResolver().query(PokemonDBProvider.CONTENT_URI, null, null, null, null);
 
-        if (mCursor == null) return;
+        Cursor cursor = null;
+        try {
+            cursor = getContentResolver().query(
+                    PokemonDBProvider.CONTENT_URI,
+                    null,
+                    null,
+                    null,
+                    null
+            );
 
-        while (mCursor.moveToNext()) {
-            String name = mCursor.getString(1);
-            String number = mCursor.getString(2);
-            pokemons.add(number + ": " + name);
+            if (cursor == null) return;
+
+            int nameIdx = cursor.getColumnIndexOrThrow(PokemonDBProvider.COLUMN_ONE);
+            int numIdx = cursor.getColumnIndexOrThrow(PokemonDBProvider.COLUMN_TWO);
+
+            while (cursor.moveToNext()) {
+                String name = cursor.getString(nameIdx);
+                String number = cursor.getString(numIdx);
+                pokemons.add(number + ": " + name);
+            }
+        } finally {
+            if (cursor != null) cursor.close();
         }
 
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, pokemons);
-        pokeList.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
+    }
+
+    private void clearFields() {
+        numberTV.setText("");
+        heightTV.setText("");
+        weightTV.setText("");
+        baseTV.setText("");
+        nameTV.setText("Pokemon");
+        sigText.setText("Signature Move/Ability");
+        pokePic.setImageURI(Uri.EMPTY);
     }
 
     private void clearDatabase() {
         getContentResolver().delete(PokemonDBProvider.CONTENT_URI, null, null);
         pokemons.clear();
-        if (adapter != null) adapter.notifyDataSetChanged();
-
-        numberTV.setText("");
-        heightTV.setText("");
-        weightTV.setText("");
-        baseTV.setText("");
-        nameTV.setText("POKEMON");
-        sigText.setText("Signature Move/Ability");
-        pokePic.setImageURI(Uri.EMPTY);
+        adapter.notifyDataSetChanged();
+        clearFields();
+        Toast.makeText(this, "Database cleared", Toast.LENGTH_SHORT).show();
     }
 }

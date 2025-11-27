@@ -1,8 +1,5 @@
 package com.example.csc2990_pokeapi;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 public class Pokemon {
     String name;
     int number;
